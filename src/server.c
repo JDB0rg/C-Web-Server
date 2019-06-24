@@ -83,6 +83,7 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
 void get_d20(int fd)
 {
     // Generate a random number between 1 and 20 inclusive
+    int num;
     
     ///////////////////
     // IMPLEMENT ME! //
@@ -184,7 +185,7 @@ void handle_http_request(int fd, struct cache *cache)
         }
         else
         {
-            
+
         }
     //    Check if it's /d20 and handle that special case
     //    Otherwise serve the requested file by calling get_file()
