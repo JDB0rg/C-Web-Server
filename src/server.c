@@ -54,10 +54,17 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
     char response[max_response_size];
 
     // Build HTTP response and store it in response
+    body = "<h1> Hello, workd!</h1>";
+    int response_length = strlen(body);
 
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
+    sprintf(response, 
+        "HTTP/1.1 200 OK\n"
+        "Content-Type: text/html"
+        "Content-Length: %d\n"
+        "Connection: close\n"
+        "\n"
+        "%s",
+        response_length, body);
 
     // Send it all!
     int rv = send(fd, response, response_length, 0);
@@ -153,15 +160,32 @@ void handle_http_request(int fd, struct cache *cache)
         return;
     }
 
+    char *request = 
+        "GET /foobar HTTP/1.1\n"
+		"Host: www.example.com\n"
+		"Connection: close\n"
+		"X-Header: whatever\n"
+		"\n";  // request ends in blank line
 
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
+        char method[128];
+        char path[8192];
 
-    // Read the first two components of the first line of the request 
- 
-    // If GET, handle the get endpoints
+        sscanf(request, "%s %s", method, path);
 
+        printf("%s\n", method);
+        printf("%s\n", path);
+
+        // If GET, handle the get endpoints
+        int status = strcmp(method, "GET")
+        if (status)
+        {
+            // if true call get_file()
+            get_file()
+        }
+        else
+        {
+            
+        }
     //    Check if it's /d20 and handle that special case
     //    Otherwise serve the requested file by calling get_file()
 
