@@ -83,17 +83,18 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
 void get_d20(int fd)
 {
     // Generate a random number between 1 and 20 inclusive
-    int num;
-    
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
+    int i;
+    for (i = 0; i <= 1; i++)
+    {
+        int num = rand() % 21 + 1;
+        printf("%d\n", num);
+    }
+    return 0;
 
     // Use send_response() to send it back as text/plain data
+    send_response(num, )
+    //(int fd, char *header, char *content_type, void *body, int content_length)
 
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
 }
 
 /**
@@ -156,7 +157,8 @@ void handle_http_request(int fd, struct cache *cache)
     // Read request
     int bytes_recvd = recv(fd, request, request_buffer_size - 1, 0);
 
-    if (bytes_recvd < 0) {
+    if (bytes_recvd < 0) 
+    {
         perror("recv");
         return;
     }
@@ -177,11 +179,11 @@ void handle_http_request(int fd, struct cache *cache)
         printf("%s\n", path);
 
         // If GET, handle the get endpoints
-        int status = strcmp(method, "GET")
+        int status = strcmp(method, "GET");
         if (status)
         {
             // if true call get_file()
-            get_file()
+            get_file();
         }
         else
         {
@@ -241,8 +243,18 @@ int main(void)
 
         handle_http_request(newfd, cache);
 
+        // Test send response
+        send_response(newfd);
+
         close(newfd);
     }
+
+     // You can test whether you've gotten send_response working by calling 
+    // the resp_404 function from somewhere inside the main function and 
+    // passing it the newfd socket (make sure you do this after the newfd 
+    // socket has been initialized by the accept system call in the while loop). 
+    // If the client receives the 404 response when you make a request to the server, 
+    // then that's a pretty clear indication that your send_response is working.
 
     // Unreachable code
 
