@@ -137,27 +137,36 @@ void resp_404(int fd)
  */
 void get_file(int fd, struct cache *cache, char *request_path)
 {
-    /// Delete this later ///
-    (void)cache;
     char filepath[4096];
     struct file_data *filedata; 
     char *mime_type;
 
-    // Fetch the file
-    snprintf(filepath, sizeof filepath, "%s%s", SERVER_ROOT, request_path);
-    filedata = file_load(filepath);
+    struct cache_entry *ce = cache_get(cache, request_path);
+    if (ce == NULL) 
+    {
+        // Fetch the file
+        snprintf(filepath, sizeof filepath, "%s%s", SERVER_ROOT, request_path);
+        filedata = file_load(filepath);
 
-    if (filedata == NULL) {
-        // TODO: make this non-fatal    
-        resp_404(fd);
-        return;
+        if (filedata == NULL) 
+        {
+            // TODO: make this non-fatal    
+            resp_404(fd);
+            return;
+        }
+        mime_type = mime_type_get(filepath);
+        printf("Cache Miss: %s\n", request_path);
+
+        // Put it in the cache
+        cache_put(cache, request_path, mime_type, filedata->data, filedata->size);
+        send_response(fd, "HTTP/1.1 200 OK", mime_type, filedata->data, filedata->size);
+        file_free(filedata);
     }
-
-    mime_type = mime_type_get(filepath);
-
-    send_response(fd, "HTTP/1.1 200 OK", mime_type, filedata->data, filedata->size);
-
-    file_free(filedata);
+    else 
+    {
+        printf("Cache Hit: %s\n", request_path);
+        send_response(fd, "HTTP/1.1 200 OK", ce->content_type, ce->content, ce->content_length);
+    }
 }
 
 /**
