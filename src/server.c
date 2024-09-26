@@ -11,7 +11,8 @@
  * 
  * Posting Data:
  * 
- *    curl -D - -X POST -H 'Content-Type: text/plain' -d 'Hello, sample data!' http://localhost:3490/save
+ *    curl -D - -X POST -H 'Content-Type: text/plain' -d 
+ *    'Hello, sample data!' http://localhost:3490/save
  * 
  * (Posting data is harder to test from a browser.)
  */
@@ -52,15 +53,27 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
 {
     const int max_response_size = 262144;
     char response[max_response_size];
-
     // Build HTTP response and store it in response
 
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
+    // Beej's knees
+
+    int response_length = sprintf(response, 
+        "%s\n"
+        "Content-Type: %s\n"
+        "Content-Length: %d\n"
+        //"Date %s\n" // TODO add date
+        "Connection: close\n"
+        "\n",
+        header, content_type, content_length);
 
     // Send it all!
     int rv = send(fd, response, response_length, 0);
+
+    if (rv < 0) {
+        perror("send");
+    }
+
+    rv = send(fd, body, content_length, 0);
 
     if (rv < 0) {
         perror("send");
@@ -77,15 +90,18 @@ void get_d20(int fd)
 {
     // Generate a random number between 1 and 20 inclusive
     
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
+    int i;
+    int num;
+    for (i = 0; i < 1; i++)
+    {
+        num = rand() % 20 + 1;
+        printf("%d\n", num);
+    }
 
     // Use send_response() to send it back as text/plain data
+    send_response(fd, "HTTP/1.1 200 OK", "text/plain", num, sizeof(num));
+    //send_response(fd, "HTTP/1.1 200 OK DUDE!", "text/plain", "987", 3);
 
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
 }
 
 /**
@@ -98,7 +114,9 @@ void resp_404(int fd)
     char *mime_type;
 
     // Fetch the 404.html file
+
     snprintf(filepath, sizeof filepath, "%s/404.html", SERVER_FILES);
+    //snprintf(filepath, sizeof filepath, "%s/IMG.jpg", SERVER_ROOT);
     filedata = file_load(filepath);
 
     if (filedata == NULL) {
@@ -119,9 +137,36 @@ void resp_404(int fd)
  */
 void get_file(int fd, struct cache *cache, char *request_path)
 {
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
+    char filepath[4096];
+    struct file_data *filedata; 
+    char *mime_type;
+
+    struct cache_entry *ce = cache_get(cache, request_path);
+    if (ce == NULL) 
+    {
+        // Fetch the file
+        snprintf(filepath, sizeof filepath, "%s%s", SERVER_ROOT, request_path);
+        filedata = file_load(filepath);
+
+        if (filedata == NULL) 
+        {
+            // TODO: make this non-fatal    
+            resp_404(fd);
+            return;
+        }
+        mime_type = mime_type_get(filepath);
+        printf("Cache Miss: %s\n", request_path);
+
+        // Put it in the cache
+        cache_put(cache, request_path, mime_type, filedata->data, filedata->size);
+        send_response(fd, "HTTP/1.1 200 OK", mime_type, filedata->data, filedata->size);
+        file_free(filedata);
+    }
+    else 
+    {
+        printf("Cache Hit: %s\n", request_path);
+        send_response(fd, "HTTP/1.1 200 OK", ce->content_type, ce->content, ce->content_length);
+    }
 }
 
 /**
@@ -135,6 +180,8 @@ char *find_start_of_body(char *header)
     ///////////////////
     // IMPLEMENT ME! // (Stretch)
     ///////////////////
+    (void)header;
+    return NULL;
 }
 
 /**
@@ -144,28 +191,44 @@ void handle_http_request(int fd, struct cache *cache)
 {
     const int request_buffer_size = 65536; // 64K
     char request[request_buffer_size];
+    char method[128];
+    char path[8192];
 
+    (void)cache;
     // Read request
     int bytes_recvd = recv(fd, request, request_buffer_size - 1, 0);
 
-    if (bytes_recvd < 0) {
+    if (bytes_recvd < 0) 
+    {
         perror("recv");
         return;
     }
 
+    printf("--------**--------\n");
+    printf("%s\n", request);
+    printf("--------**--------\n");
 
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
-
-    // Read the first two components of the first line of the request 
- 
+    sscanf(request, "%s %s", method, path);
+    printf("%s\n%s\n", method, path);
     // If GET, handle the get endpoints
-
-    //    Check if it's /d20 and handle that special case
-    //    Otherwise serve the requested file by calling get_file()
-
-
+    // if true call get_file()
+    if (strcmp(method, "GET") == 0)
+    {
+        //    Check if it's /d20 and handle that special case
+        if (strcmp(path, "/d20") == 0)
+        {
+            get_d20(fd);
+        }
+        else
+        {
+            //    Otherwise serve the requested file by calling get_file()
+            get_file(fd, cache, path);
+        }
+    }
+    else
+    {
+        resp_404(fd);
+    }
     // (Stretch) If POST, handle the post request
 }
 
@@ -216,11 +279,12 @@ int main(void)
 
         handle_http_request(newfd, cache);
 
+        // Test send response
+
         close(newfd);
     }
 
     // Unreachable code
-
     return 0;
 }
 
